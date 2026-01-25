@@ -23,7 +23,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y jq curl unzip moreutils imagemagick zip
+          sudo apt-get install -y jq curl unzip moreutils imagemagick zip python3
           sudo npm install -g spritesheet-js
 
       - name: Download converter.sh
