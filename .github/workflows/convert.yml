@@ -99,16 +99,43 @@ jobs:
 
       - name: Run Conversion
         run: |
+          # Enable built-in flattening logic
+          export rename_model_files=true
+          
           # Run the conversion script
           ./converter.sh generated.zip
           
-          if [ -f "./target/packaged/geyser_resources.mcpack" ]; then
-            mv ./target/packaged/geyser_resources.mcpack ./generated.mcpack
-          fi
+          # MANUALLY ENSURE FLATTENING (Double check for deep ia_auto folders)
+          # Sometimes the script might miss some sub-paths if structure is unusual
+          status_message() { echo "[$1] $2"; }
+          
+          flatten_folder() {
+            local target_dir="./target/unpackaged/rp/$1"
+            if [ -d "$target_dir" ]; then
+              echo "Flattening $target_dir..."
+              find "$target_dir" -mindepth 2 -type f -exec mv -n {} "$target_dir/" \;
+              find "$target_dir" -mindepth 1 -type d -empty -delete
+            fi
+          }
+          
+          # Flatten problematic Geyser folders
+          flatten_folder "attachables"
+          flatten_folder "animations"
+          flatten_folder "models/entity"
+          
+          # Re-package since we moved files from unpackaged/rp
+          cd ./target/unpackaged/rp && zip -rq8 ../../generated.mcpack . && cd ../../..
           
           if [ -f "./target/geyser_mappings.json" ]; then
             mv ./target/geyser_mappings.json ./generated.mappings
           fi
+          
+          # Final check for long paths in the mcpack
+          unzip -l ./generated.mcpack | awk '{print $4}' | while read path; do
+            if [ ${#path} -ge 80 ]; then
+              echo "WARNING: Path still too long (${#path} chars): $path"
+            fi
+          done
           
           ls -lh ./generated.*
 
