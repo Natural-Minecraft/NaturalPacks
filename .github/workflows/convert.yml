@@ -36,29 +36,28 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${{ github.event.release.tag_name || github.event.inputs.tag }}"
-          if [ "$TAG" = "latest" ]; then
-            RELEASE_DATA=$(curl -fsSL -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/${{ github.repository }}/releases/latest)
-          else
-            RELEASE_DATA=$(curl -fsSL -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG)
-          fi
           
+          # We search for the release by tag to get its ID and assets, even if it's a draft
+          RELEASE_DATA=$(curl -fsSL -H "Authorization: token $GITHUB_TOKEN" \
+            https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG || \
+            curl -fsSL -H "Authorization: token $GITHUB_TOKEN" \
+            https://api.github.com/repos/${{ github.repository }}/releases | jq -r ".[] | select(.tag_name==\"$TAG\")")
+          
+          RELEASE_ID=$(echo "$RELEASE_DATA" | jq -r '.id')
           ASSET_URL=$(echo "$RELEASE_DATA" | jq -r '.assets[] | select(.name=="generated.zip") | .url')
           
-          if [ "$ASSET_URL" = "null" ] || [ -z "$ASSET_URL" ]; then
+          if [ -z "$ASSET_URL" ] || [ "$ASSET_URL" = "null" ]; then
             echo "Error: generated.zip not found in release $TAG"
             exit 1
           fi
           
           curl -fsSL -L -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/octet-stream" $ASSET_URL -o generated.zip
+          echo "RELEASE_ID=$RELEASE_ID" >> $GITHUB_ENV
 
       - name: Run Conversion
         run: |
           # Run the conversion script
           ./converter.sh generated.zip
-          
-          # The script produces outputs in the ./target folder
-          # Mapping: ./target/geyser_mappings.json
-          # Pack: ./target/packaged/geyser_resources.mcpack
           
           if [ -f "./target/packaged/geyser_resources.mcpack" ]; then
             mv ./target/packaged/geyser_resources.mcpack ./generated.mcpack
@@ -68,25 +67,26 @@ jobs:
             mv ./target/geyser_mappings.json ./generated.mappings
           fi
           
-          # Final check
           ls -lh ./generated.*
 
       - name: Upload Converted Assets
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+          draft: true
           files: |
             generated.mcpack
             generated.mappings
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Converted Assets
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.event.release.tag_name || github.event.inputs.tag }}
-          files: |
-            generated.mcpack
-            generated.mappings
+      - name: Finalize & Publish Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+        run: |
+          # Publish the draft release now that all assets are uploaded
+          curl -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/releases/${{ env.RELEASE_ID }} \
+            -d '{"draft":false}'
