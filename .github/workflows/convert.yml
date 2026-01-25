@@ -54,6 +54,49 @@ jobs:
           curl -fsSL -L -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/octet-stream" $ASSET_URL -o generated.zip
           echo "RELEASE_ID=$RELEASE_ID" >> $GITHUB_ENV
 
+      - name: Inject Classic UI Logic
+        run: |
+          mkdir -p assets/ui
+          cat <<EOF > assets/ui/chest_screen.json
+          {
+            "namespace": "chest",
+            "small_chest_screen@common.inventory_screen_common": {
+              "\$atitle": "\$container_title",
+              "\$ofunnymenu": "(('%.2s' * \$atitle) = '§')",
+              "variables": [
+                {
+                  "requires": "(\$desktop_screen or \$ofunnymenu)",
+                  "\$screen_content": "chest.small_chest_panel",
+                  "\$screen_bg_content": "common.screen_background",
+                  "\$screen_background_alpha": 0.4
+                },
+                {
+                  "requires": "(\$pocket_screen and not \$ofunnymenu)",
+                  "\$use_custom_pocket_toast": true,
+                  "\$screen_content": "pocket_containers.small_chest_panel"
+                }
+              ]
+            },
+            "large_chest_screen@common.inventory_screen_common": {
+              "\$atitle": "\$container_title",
+              "\$ofunnymenu": "(('%.2s' * \$atitle) = '§')",
+              "variables": [
+                {
+                  "requires": "(\$desktop_screen or \$ofunnymenu)",
+                  "\$screen_content": "chest.large_chest_panel",
+                  "\$screen_bg_content": "common.screen_background",
+                  "\$screen_background_alpha": 0.4
+                },
+                {
+                  "requires": "(\$pocket_screen and not \$ofunnymenu)",
+                  "\$use_custom_pocket_toast": true,
+                  "\$screen_content": "pocket_containers.large_chest_panel"
+                }
+              ]
+            }
+          }
+          EOF
+
       - name: Run Conversion
         run: |
           # Run the conversion script
