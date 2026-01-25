@@ -23,7 +23,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y jq curl unzip
+          sudo apt-get install -y jq curl unzip moreutils
 
       - name: Download converter.sh
         run: |
