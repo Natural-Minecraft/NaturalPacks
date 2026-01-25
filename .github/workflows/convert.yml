@@ -102,26 +102,19 @@ jobs:
           # Run the conversion script
           ./converter.sh generated.zip
           
-          # NOTE: We do NOT flatten folders because it breaks the mappings references.
-          # The 80-char path warnings are cosmetic and do not affect functionality.
-          
-          # BRANDING: Update manifest with NaturalSMP identity
-          echo '{"format_version":2,"header":{"description":"§bNaturalSMP §7- §fPremium Bedrock Experience","name":"§bNaturalBedrockPacks","uuid":"d4e5f6a7-b8c9-0123-4567-89abcdef0123","version":[1,0,0],"min_engine_version":[1,20,0]},"modules":[{"description":"NaturalSMP Resource Module","type":"resources","uuid":"abcdef01-2345-6789-abcd-ef0123456789","version":[1,0,0]}]}' > ./target/unpackaged/rp/manifest.json
-          
-          # Download official NaturalSMP logo as pack icon
-          curl -fsSL https://raw.githubusercontent.com/Natural-Minecraft/NaturalPacks/master/NaturalUI/pack_icon.png -o ./target/unpackaged/rp/pack_icon.png || echo "Warning: Could not download logo"
-          
-          # Repackage with branding
-          cd ./target/unpackaged/rp && zip -rq8 ../../../generated.mcpack . && cd ../../..
+          # Use the original output from converter.sh (no modifications to avoid corruption)
+          if [ -f "./target/packaged/geyser_resources.mcpack" ]; then
+            mv ./target/packaged/geyser_resources.mcpack ./NaturalBedrockPacks.mcpack
+          fi
           
           if [ -f "./target/geyser_mappings.json" ]; then
-            mv ./target/geyser_mappings.json ./generated.mappings
+            mv ./target/geyser_mappings.json ./NaturalBedrockPacks.mappings
           fi
           
           # Final check
           echo "Checking generated assets..."
-          ls -lh ./generated.mcpack || echo "ERROR: generated.mcpack NOT FOUND"
-          ls -lh ./generated.mappings || echo "ERROR: generated.mappings NOT FOUND"
+          ls -lh ./NaturalBedrockPacks.mcpack || echo "ERROR: NaturalBedrockPacks.mcpack NOT FOUND"
+          ls -lh ./NaturalBedrockPacks.mappings || echo "ERROR: NaturalBedrockPacks.mappings NOT FOUND"
 
       - name: Upload Converted Assets
         uses: softprops/action-gh-release@v1
@@ -129,8 +122,8 @@ jobs:
           tag_name: ${{ github.event.release.tag_name || github.event.inputs.tag }}
           draft: true
           files: |
-            generated.mcpack
-            generated.mappings
+            NaturalBedrockPacks.mcpack
+            NaturalBedrockPacks.mappings
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
