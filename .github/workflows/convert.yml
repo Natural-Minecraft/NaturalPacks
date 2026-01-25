@@ -23,7 +23,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y jq curl unzip moreutils
+          sudo apt-get install -y jq curl unzip moreutils imagemagick zip
 
       - name: Download converter.sh
         run: |
@@ -52,24 +52,33 @@ jobs:
 
       - name: Run Conversion
         run: |
-          # Create workspace
-          mkdir -p output
-          
           # Run the conversion script
           ./converter.sh generated.zip
           
-          # java2bedrock.sh generates geyser_resources.mcpack and geyser_mappings.json
-          # We check if they exist and rename them for NaturalUpdater
-          if [ -f "geyser_resources.mcpack" ]; then
-            mv geyser_resources.mcpack generated.mcpack
+          # The script produces outputs in the ./target folder
+          # Mapping: ./target/geyser_mappings.json
+          # Pack: ./target/packaged/geyser_resources.mcpack
+          
+          if [ -f "./target/packaged/geyser_resources.mcpack" ]; then
+            mv ./target/packaged/geyser_resources.mcpack ./generated.mcpack
           fi
           
-          if [ -f "geyser_mappings.json" ]; then
-            mv geyser_mappings.json generated.mappings
+          if [ -f "./target/geyser_mappings.json" ]; then
+            mv ./target/geyser_mappings.json ./generated.mappings
           fi
           
           # Final check
-          ls -lh
+          ls -lh ./generated.*
+
+      - name: Upload Converted Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+          files: |
+            generated.mcpack
+            generated.mappings
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Converted Assets
         uses: softprops/action-gh-release@v1
