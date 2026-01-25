@@ -124,20 +124,23 @@ jobs:
           flatten_folder "models/entity"
           
           # Re-package since we moved files from unpackaged/rp
-          cd ./target/unpackaged/rp && zip -rq8 ../../generated.mcpack . && cd ../../..
+          # We zip directly into the ROOT of the workspace
+          cd ./target/unpackaged/rp && zip -rq8 ../../../generated.mcpack . && cd ../../..
           
           if [ -f "./target/geyser_mappings.json" ]; then
             mv ./target/geyser_mappings.json ./generated.mappings
           fi
           
-          # Final check for long paths in the mcpack
+          # Final check for long paths and file existence
+          echo "Checking generated assets..."
+          ls -lh ./generated.mcpack || echo "ERROR: generated.mcpack NOT FOUND"
+          ls -lh ./generated.mappings || echo "ERROR: generated.mappings NOT FOUND"
+          
           unzip -l ./generated.mcpack | awk '{print $4}' | while read path; do
             if [ ${#path} -ge 80 ]; then
               echo "WARNING: Path still too long (${#path} chars): $path"
             fi
           done
-          
-          ls -lh ./generated.*
 
       - name: Upload Converted Assets
         uses: softprops/action-gh-release@v1
@@ -156,7 +159,8 @@ jobs:
           TAG: ${{ github.event.release.tag_name || github.event.inputs.tag }}
         run: |
           # Publish the draft release now that all assets are uploaded
-          curl -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
+          # Use env.RELEASE_ID from earlier step
+          curl -fsSL -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/${{ github.repository }}/releases/${{ env.RELEASE_ID }} \
             -d '{"draft":false}'
