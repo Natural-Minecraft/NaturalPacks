@@ -99,22 +99,24 @@ jobs:
 
       - name: Run Conversion
         run: |
-          # Run the conversion script
+          # Standard conversion without any modifications
           ./converter.sh generated.zip
           
-          # Use the original output from converter.sh (no modifications to avoid corruption)
+          # java2bedrock.sh produces files in ./target/
+          # Pack: ./target/packaged/geyser_resources.mcpack
+          # Mappings: ./target/geyser_mappings.json
+          
           if [ -f "./target/packaged/geyser_resources.mcpack" ]; then
-            mv ./target/packaged/geyser_resources.mcpack ./NaturalBedrockPacks.mcpack
+            mv ./target/packaged/geyser_resources.mcpack ./generated.mcpack
           fi
           
           if [ -f "./target/geyser_mappings.json" ]; then
-            mv ./target/geyser_mappings.json ./NaturalBedrockPacks.mappings
+            mv ./target/geyser_mappings.json ./generated.mappings
           fi
           
-          # Final check
-          echo "Checking generated assets..."
-          ls -lh ./NaturalBedrockPacks.mcpack || echo "ERROR: NaturalBedrockPacks.mcpack NOT FOUND"
-          ls -lh ./NaturalBedrockPacks.mappings || echo "ERROR: NaturalBedrockPacks.mappings NOT FOUND"
+          # Verify existence
+          ls -lh ./generated.mcpack
+          ls -lh ./generated.mappings
 
       - name: Upload Converted Assets
         uses: softprops/action-gh-release@v1
@@ -122,8 +124,8 @@ jobs:
           tag_name: ${{ github.event.release.tag_name || github.event.inputs.tag }}
           draft: true
           files: |
-            NaturalBedrockPacks.mcpack
-            NaturalBedrockPacks.mappings
+            generated.mcpack
+            generated.mappings
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -132,8 +134,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.event.release.tag_name || github.event.inputs.tag }}
         run: |
-          # Publish the draft release now that all assets are uploaded
-          # Use env.RELEASE_ID from earlier step
           curl -fsSL -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/${{ github.repository }}/releases/${{ env.RELEASE_ID }} \
