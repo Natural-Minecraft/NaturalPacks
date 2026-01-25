@@ -104,27 +104,43 @@ jobs:
           
           # NOTE: We do NOT flatten folders because it breaks the mappings references.
           # The 80-char path warnings are cosmetic and do not affect functionality.
-          # Classic UI is handled via a separate pack (see NaturalUI.mcpack).
           
-          # Use the pre-packaged output from converter.sh
-          if [ -f "./target/packaged/geyser_resources.mcpack" ]; then
-            mv ./target/packaged/geyser_resources.mcpack ./generated.mcpack
-          fi
+          # BRANDING: Update manifest with NaturalSMP identity
+          cat > ./target/unpackaged/rp/manifest.json << 'MANIFESTEOF'
+{
+  "format_version": 2,
+  "header": {
+    "description": "§bNaturalSMP §7- §fPremium Bedrock Experience\n§7Custom items, textures, and more!",
+    "name": "§bNaturalBedrockPacks",
+    "uuid": "d4e5f6a7-b8c9-0123-4567-89abcdef0123",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 20, 0]
+  },
+  "modules": [
+    {
+      "description": "NaturalSMP Resource Module",
+      "type": "resources",
+      "uuid": "abcdef01-2345-6789-abcd-ef0123456789",
+      "version": [1, 0, 0]
+    }
+  ]
+}
+MANIFESTEOF
+          
+          # Download official NaturalSMP logo as pack icon
+          curl -fsSL https://raw.githubusercontent.com/Natural-Minecraft/NaturalPacks/master/NaturalUI/pack_icon.png -o ./target/unpackaged/rp/pack_icon.png || echo "Warning: Could not download logo"
+          
+          # Repackage with branding
+          cd ./target/unpackaged/rp && zip -rq8 ../../../generated.mcpack . && cd ../../..
           
           if [ -f "./target/geyser_mappings.json" ]; then
             mv ./target/geyser_mappings.json ./generated.mappings
           fi
           
-          # Final check for long paths and file existence
+          # Final check
           echo "Checking generated assets..."
           ls -lh ./generated.mcpack || echo "ERROR: generated.mcpack NOT FOUND"
           ls -lh ./generated.mappings || echo "ERROR: generated.mappings NOT FOUND"
-          
-          unzip -l ./generated.mcpack | awk '{print $4}' | while read path; do
-            if [ ${#path} -ge 80 ]; then
-              echo "WARNING: Path still too long (${#path} chars): $path"
-            fi
-          done
 
       - name: Upload Converted Assets
         uses: softprops/action-gh-release@v1
