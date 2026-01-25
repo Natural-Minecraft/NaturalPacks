@@ -1,0 +1,9 @@
+generated.zip
+generated.mcpack
+generated.mappings
+geyser_resources.mcpack
+geyser_mappings.json
+java2bedrock.sh
+output/
+*.log
+.DS_Store

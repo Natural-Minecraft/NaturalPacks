@@ -1,0 +1,84 @@
+name: Convert Java to Bedrock (java2bedrock.sh)
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag of the release to process'
+        required: true
+        default: 'latest'
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to upload assets to release
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq curl unzip
+
+      - name: Download java2bedrock.sh
+        run: |
+          curl -L https://raw.githubusercontent.com/Kas-tle/java2bedrock.sh/main/java2bedrock.sh -o java2bedrock.sh
+          chmod +x java2bedrock.sh
+
+      - name: Download Java Pack from Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.event.release.tag_name || github.event.inputs.tag }}"
+          if [ "$TAG" = "latest" ]; then
+            RELEASE_DATA=$(curl -s -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/${{ github.repository }}/releases/latest)
+          else
+            RELEASE_DATA=$(curl -s -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG)
+          fi
+          
+          ASSET_URL=$(echo "$RELEASE_DATA" | jq -r '.assets[] | select(.name=="generated.zip") | .url')
+          
+          if [ "$ASSET_URL" = "null" ] || [ -z "$ASSET_URL" ]; then
+            echo "Error: generated.zip not found in release $TAG"
+            exit 1
+          fi
+          
+          curl -L -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/octet-stream" $ASSET_URL -o generated.zip
+
+      - name: Run Conversion
+        run: |
+          # Create workspace
+          mkdir -p output
+          
+          # Run the conversion script
+          # java2bedrock.sh [input_zip] [working_dir] [options]
+          # Note: We use specific version 1.21 assets if possible
+          ./java2bedrock.sh generated.zip
+          
+          # java2bedrock.sh generates geyser_resources.mcpack and geyser_mappings.json
+          # We check if they exist and rename them for NaturalUpdater
+          if [ -f "geyser_resources.mcpack" ]; then
+            mv geyser_resources.mcpack generated.mcpack
+          fi
+          
+          if [ -f "geyser_mappings.json" ]; then
+            mv geyser_mappings.json generated.mappings
+          fi
+          
+          # Final check
+          ls -lh
+
+      - name: Upload Converted Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+          files: |
+            generated.mcpack
+            generated.mappings
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
