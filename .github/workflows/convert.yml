@@ -25,10 +25,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y jq curl unzip
 
-      - name: Download java2bedrock.sh
+      - name: Download converter.sh
         run: |
-          curl -L https://raw.githubusercontent.com/Kas-tle/java2bedrock.sh/main/java2bedrock.sh -o java2bedrock.sh
-          chmod +x java2bedrock.sh
+          curl -fsSL https://raw.githubusercontent.com/Kas-tle/java2bedrock.sh/main/converter.sh -o converter.sh
+          chmod +x converter.sh
 
       - name: Download Java Pack from Release
         env:
@@ -36,9 +36,9 @@ jobs:
         run: |
           TAG="${{ github.event.release.tag_name || github.event.inputs.tag }}"
           if [ "$TAG" = "latest" ]; then
-            RELEASE_DATA=$(curl -s -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/${{ github.repository }}/releases/latest)
+            RELEASE_DATA=$(curl -fsSL -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/${{ github.repository }}/releases/latest)
           else
-            RELEASE_DATA=$(curl -s -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG)
+            RELEASE_DATA=$(curl -fsSL -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG)
           fi
           
           ASSET_URL=$(echo "$RELEASE_DATA" | jq -r '.assets[] | select(.name=="generated.zip") | .url')
@@ -48,7 +48,7 @@ jobs:
             exit 1
           fi
           
-          curl -L -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/octet-stream" $ASSET_URL -o generated.zip
+          curl -fsSL -L -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/octet-stream" $ASSET_URL -o generated.zip
 
       - name: Run Conversion
         run: |
@@ -56,9 +56,7 @@ jobs:
           mkdir -p output
           
           # Run the conversion script
-          # java2bedrock.sh [input_zip] [working_dir] [options]
-          # Note: We use specific version 1.21 assets if possible
-          ./java2bedrock.sh generated.zip
+          ./converter.sh generated.zip
           
           # java2bedrock.sh generates geyser_resources.mcpack and geyser_mappings.json
           # We check if they exist and rename them for NaturalUpdater
