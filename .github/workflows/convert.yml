@@ -99,29 +99,11 @@ jobs:
 
       - name: Run Conversion
         run: |
-          # Enable built-in flattening logic
-          export rename_model_files=true
-          
           # Run the conversion script
           ./converter.sh generated.zip
           
-          # MANUALLY ENSURE FLATTENING (Double check for deep ia_auto folders)
-          # Sometimes the script might miss some sub-paths if structure is unusual
-          status_message() { echo "[$1] $2"; }
-          
-          flatten_folder() {
-            local target_dir="./target/unpackaged/rp/$1"
-            if [ -d "$target_dir" ]; then
-              echo "Flattening $target_dir..."
-              find "$target_dir" -mindepth 2 -type f -exec mv -n {} "$target_dir/" \;
-              find "$target_dir" -mindepth 1 -type d -empty -delete
-            fi
-          }
-          
-          # Flatten problematic Geyser folders
-          flatten_folder "attachables"
-          flatten_folder "animations"
-          flatten_folder "models/entity"
+          # NOTE: We do NOT flatten folders because it breaks the mappings references.
+          # The 80-char path warnings are cosmetic and do not affect functionality.
           
           # INJECT CLASSIC UI OVERRIDE (Force Classic Chest UI)
           mkdir -p ./target/unpackaged/rp/ui
