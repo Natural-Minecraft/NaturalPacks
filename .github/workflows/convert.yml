@@ -99,7 +99,13 @@ jobs:
 
       - name: Run Conversion
         run: |
-          # Standard conversion without any modifications
+          # Use optimized setttings for ItemsAdder packs
+          # Fixes texture issues by enforcing standard sizes and custom model data handling
+          
+          # Force texture size to prevent scaling artifacts
+          export texture_size=256
+          
+          # Standard conversion
           ./converter.sh generated.zip
           
           # java2bedrock.sh produces files in ./target/
