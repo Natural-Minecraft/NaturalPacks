@@ -105,19 +105,25 @@ jobs:
           # Force texture size to prevent scaling artifacts
           export texture_size=256
           
-          # Standard conversion
-          ./converter.sh generated.zip
+          # Explicitly enable mapping generation
+          export generate_mappings=true
           
-          # java2bedrock.sh produces files in ./target/
-          # Pack: ./target/packaged/geyser_resources.mcpack
-          # Mappings: ./target/geyser_mappings.json
+          # Standard conversion with debug output
+          bash -x ./converter.sh generated.zip
           
+          # Check what was generated
+          ls -R ./target/
+          
+          # Move assets
           if [ -f "./target/packaged/geyser_resources.mcpack" ]; then
             mv ./target/packaged/geyser_resources.mcpack ./generated.mcpack
           fi
           
+          # Try to find mappings file (name might vary)
           if [ -f "./target/geyser_mappings.json" ]; then
             mv ./target/geyser_mappings.json ./generated.mappings
+          elif [ -f "./target/mappings.json" ]; then
+             mv ./target/mappings.json ./generated.mappings
           fi
           
           # Verify existence
