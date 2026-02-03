@@ -1,13 +1,11 @@
-# NaturalPacks 🏁🛡️
+# NaturalPacks
 
-Automated Resource Pack Conversion for NaturalSMP.
+Manajemen Resource Pack terpusat untuk **NaturalSMP**. Memastikan pemain selalu mendapatkan aset visual terbaru (Custom Items, Textures, Music).
 
-## Flow
-1. **Source**: NaturalUpdater (Spigot) uploads `generated.zip` from ItemsAdder via `/updater geyser`.
-2. **Process**: This repository triggers a GitHub Action using `java2bedrock.sh` by @Kas-tle.
-3. **Output**: Converted `.mcpack` and `.mappings` are uploaded back to the release.
-4. **Deploy**: NaturalUpdater (Velocity) fetches and deploys assets to Geyser-Velocity.
+## ✨ Fitur Utama
+*   **Hash Validation**: Memastikan integritas file pack yang diunduh pemain.
+*   **Force Load**: Memastikan pemain menggunakan resource pack wajib untuk pengalaman bermain terbaik.
+*   **Auto-Update**: Sinkronisasi otomatis saat ada pembaruan aset di sisi server.
 
-## Setup
-- Ensure any specific `java2bedrock.sh` flags are configured in `.github/workflows/convert.yml`.
-- Make sure to use the specific `generated.zip` name when exporting.
+---
+**© 2026 NaturalSMP Development Team**
