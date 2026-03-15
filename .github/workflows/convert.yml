@@ -97,6 +97,18 @@ jobs:
           }
           EOF
 
+      - name: Generate sprites.json for Inventory Icons
+        run: |
+          echo "Extracting generated.zip..."
+          unzip -q generated.zip -d temp_pack
+          echo "Running generate_sprites.py..."
+          python3 generate_sprites.py
+          echo "Re-zipping with sprites.json..."
+          cd temp_pack
+          zip -q -r ../generated.zip *
+          cd ..
+          rm -rf temp_pack
+
       - name: Run Conversion
         run: |
           # Use optimized setttings for ItemsAdder packs
@@ -124,6 +136,15 @@ jobs:
             mv ./target/geyser_mappings.json ./generated.mappings
           elif [ -f "./target/mappings.json" ]; then
              mv ./target/mappings.json ./generated.mappings
+          fi
+          
+          # Inject Classic UI Logic into the output Bedrock pack
+          # The Bedrock pack uses .zip format internally. We inject ui/chest_screen.json
+          if [ -f "./generated.mcpack" ]; then
+            echo "Injecting chest_screen.json into Bedrock pack..."
+            mkdir -p ui
+            mv assets/ui/chest_screen.json ui/chest_screen.json || true
+            zip -q -r generated.mcpack ui/
           fi
           
           # Verify existence
