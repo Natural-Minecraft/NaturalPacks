@@ -170,6 +170,9 @@ jobs:
               print("Skipping gmdl_ strip: mappings file not found or invalid")
               sys.exit(0)
 
+          if "format_version" not in data:
+              data["format_version"] = 1
+
           stripped = 0
           # Geyser mappings format: { "items": { "minecraft:item_type": [ ... ] } }
           if "items" in data:
