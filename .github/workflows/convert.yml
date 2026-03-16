@@ -157,6 +157,41 @@ jobs:
           ls -lh ./generated.mcpack
           ls -lh ./generated.mappings
 
+      - name: Strip ModelEngine gmdl_ entries from mappings
+        run: |
+          python3 - <<'PYEOF'
+          import json, sys
+
+          mappings_file = "./generated.mappings"
+          try:
+              with open(mappings_file, "r") as f:
+                  data = json.load(f)
+          except (json.JSONDecodeError, FileNotFoundError):
+              print("Skipping gmdl_ strip: mappings file not found or invalid")
+              sys.exit(0)
+
+          stripped = 0
+          # Geyser mappings format: { "items": { "minecraft:item_type": [ ... ] } }
+          if "items" in data:
+              for item_type, definitions in list(data["items"].items()):
+                  if isinstance(definitions, list):
+                      original_len = len(definitions)
+                      data["items"][item_type] = [
+                          d for d in definitions
+                          if not (isinstance(d, dict) and
+                                  str(d.get("bedrock_identifier", "")).startswith("geyser_custom:gmdl_"))
+                      ]
+                      stripped += original_len - len(data["items"][item_type])
+                      # Remove the item type key entirely if no definitions remain
+                      if not data["items"][item_type]:
+                          del data["items"][item_type]
+
+          with open(mappings_file, "w") as f:
+              json.dump(data, f, indent=2)
+
+          print(f"Stripped {stripped} gmdl_ entries from mappings (GeyserModelEngine conflicts)")
+          PYEOF
+
       - name: Upload Converted Assets
         uses: softprops/action-gh-release@v1
         with:
