@@ -147,6 +147,12 @@ jobs:
             zip -q -r generated.mcpack ui/
           fi
           
+          # Prevent GitHub API 422 Validation Failed (size must be >= 1)
+          if [ ! -s "./generated.mappings" ]; then
+             echo "Warning: generated.mappings is empty or missing. Creating a fallback empty JSON."
+             echo "{}" > ./generated.mappings
+          fi
+          
           # Verify existence
           ls -lh ./generated.mcpack
           ls -lh ./generated.mappings
